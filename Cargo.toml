@@ -11,3 +11,6 @@ edition = "2018"
 [dependencies]
 flatbuffers = "23.1.21"
 paste = "1.0.6"
+
+[lib]
+doctest = false
