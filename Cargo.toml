@@ -1,0 +1,13 @@
+[package]
+authors = ["Florian Gäbler"]
+description = "This minimal library provides a macro and a trait to create a FlatBuffer newtype that owns its data. An owned FlatBuffer allows you to freely move it around without worrying about the lifetime of the data's origin."
+license = "MIT"
+keywords = ["flatbuffers", "serialization", "owned"]
+version = "0.1.0"
+readme = "README.md"
+name = "flatbuffers-owned"
+edition = "2018"
+
+[dependencies]
+flatbuffers = "23.1.21"
+paste = "1.0.6"
