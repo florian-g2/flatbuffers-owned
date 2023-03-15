@@ -7,7 +7,7 @@ documentation = "https://docs.rs/flatbuffers-owned"
 repository = "https://github.com/florian-g2/flatbuffers-owned"
 keywords = ["flatbuffers", "serialization", "owned"]
 categories = ["data-structures", "memory-management"]
-version = "0.1.0"
+version = "0.1.1"
 readme = "README.md"
 edition = "2018"
 
