@@ -1,7 +1,7 @@
 [package]
 name = "flatbuffers-owned"
 authors = ["Florian Gäbler"]
-description = "This minimal library provides a macro and a trait to create a FlatBuffer newtype that owns its data. An owned FlatBuffer allows you to freely move it around without worrying about the lifetime of the data's origin."
+description = "This small Rust crate provides a wrapper struct for generated Rust FlatBuffers that allows them to be used as owned types."
 license = "MIT"
 documentation = "https://docs.rs/flatbuffers-owned"
 repository = "https://github.com/florian-g2/flatbuffers-owned"
