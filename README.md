@@ -48,7 +48,7 @@ for id in message_ids {
 ```
 
 ## Approach
-### The type alias
+### The wrapper struct
 The wrapper struct is a newtype for a Box<[u8]> that accepts a FlatBuffer as the generic type.</br>
 With the `flatbuffers_owned!` convenience macro we get a type alias that just masks this wrapper struct.
 
@@ -62,10 +62,10 @@ So instead of `OwnedMessage`, we can just as well use `OwnedFlatBuffer<Message<'
 let owned_message = OwnedFlatBuffer::<Message<'static>>::new(message_bytes).unwrap();
 ```
 
-As you can see, we always carry around the `'static` lifetime for the FlatBuffer.</br>
-This is not quite appealing, since the owned FlatBuffer doesn't reference anything in the `'static` lifetime.</br>
-The lifetime is just there, because it is required by the FlatBuffer struct.</br>
-So to improve the code readability, we have the type alias.
+As you may have noticed, the `'static` lifetime is then always present when working with the OwnedFlatBuffer.</br>
+However, this can be misleading, because the OwnedFlatBuffer does not actually reference anything in the `'static` lifetime.</br>
+The lifetime is only required by the FlatBuffer struct.</br>
+So to make the code more readable, we have the type alias.</br>
 
 ### Deref to &[u8]
 The OwnedFlatBuffer struct de-references itself to its underlying bytes slice.</br>
