@@ -3,7 +3,6 @@ name = "flatbuffers-owned"
 authors = ["Florian Gäbler"]
 description = "This minimal library provides a macro and a trait to create a FlatBuffer newtype that owns its data. An owned FlatBuffer allows you to freely move it around without worrying about the lifetime of the data's origin."
 license = "MIT"
-license-file = "LICENSE"
 documentation = "https://docs.rs/flatbuffers-owned"
 repository = "https://github.com/florian-g2/flatbuffers-owned"
 keywords = ["flatbuffers", "serialization", "owned"]
