@@ -1,8 +1,11 @@
-# flatbuffers-owned
+# flatbuffers-owned &emsp; [![Build Status]][actions] [![License]][License File] [![Latest Version]][crates.io]
 
-[![Rust](https://github.com/florian-g2/flatbuffers-owned/actions/workflows/rust.yml/badge.svg)](https://github.com/florian-g2/flatbuffers-owned/actions/workflows/rust.yml)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Cargo](https://img.shields.io/crates/v/flatbuffers-owned.svg)](https://crates.io/crates/flatbuffers-owned)
+[Build Status]: https://github.com/florian-g2/flatbuffers-owned/actions/workflows/rust.yml/badge.svg
+[actions]: https://github.com/florian-g2/flatbuffers-owned/actions/workflows/rust.yml
+[License]: https://img.shields.io/badge/license-MIT-blue.svg
+[License File]: LICENSE
+[Latest Version]: https://img.shields.io/crates/v/flatbuffers-owned.svg
+[crates.io]: https://crates.io/crates/flatbuffers-owned
 
 This small Rust crate provides a wrapper struct for generated Rust FlatBuffers that allows them to be used as owned types.</br></br>
 A owned FlatBuffer does not reference its source data and can therefore be easily moved into another thread.
