@@ -1,36 +1,82 @@
-//! This crate provides a wrapper struct for FlatBuffers that allows them to be used as owned types.
+//! This small Rust crate provides a wrapper struct for generated Rust FlatBuffers that allows them to be used as owned types.</br>
+//! A owned FlatBuffer does not reference its source data and can therefore be easily moved into another thread.
 //!
+//! ## Quickstart
 //! Use the `flatbuffers_owned!` convenience macro on your FlatBuffers to implement the required trait and introduce a type alias for each owned FlatBuffer.
 //!
-//! # Example usage
+//! Generate the `OwnedMessage` type alias for the `Message` FlatBuffer:
+//! ```rust
+//! flatbuffers_owned!(Message);
 //! ```
-//! flatbuffers_owned!(Foo);
 //!
-//! fn get_foo_bytes() -> Box<[u8]> {
-//!     let mut builder = FlatBufferBuilder::new();
-//!     let b = builder.create_string("Hello, world!");
+//! Receive a byte slice, create a boxed slice, and initialize the owned flatbuffer:
+//! ```rust
+//! let message_bytes: &[u8] = receive_message_bytes();
+//! let message_bytes: Box<[u8]> = Box::from(message_bytes);
 //!
-//!     let offset = Foo::create(&mut builder, &FooArgs {
-//!         a: 42,
-//!         b: Some(b),
-//!     });
+//! let owned_message = OwnedMessage::new(message_bytes).unwrap();
+//! ```
 //!
-//!     builder.finish(offset, None);
+//! Access the actual FlatBuffer:
+//! ```rust
+//! let message: Message = owned_message.as_actual();
 //!
-//!     builder.finished_data().into()
+//! assert_eq!(message.get_text().unwrap(), "Hello, world!");
+//! ```
+//!
+//! ## Error-Handling
+//! The new() constructor always verifies the raw FlatBuffer bytes using the FlatBuffer's built-in run_verifier() method.</br>
+//! Since there can always be a faulty byte-slice passed, you need to check the returned Result of the constructor:
+//! ```rust
+//! for id in message_ids {
+//!     let message_bytes = Box::from(receive_message_bytes());
+//!
+//!     let owned_message = OwnedMessage::new(message_bytes);
+//!
+//!     match owned_message {
+//!         Ok(message) => {
+//!             // ... process message
+//!         },
+//!         Err(e) => {
+//!             println!("Failed to parse Message: {}", e);
+//!             // ... handling logic
+//!         },
+//!     }
 //! }
-//!
-//! let owned_foo: OwnedFoo = OwnedFoo::new(get_foo_bytes()).expect("Failed to parse Foo");
-//! let foo: Foo = owned_foo.as_actual();
-//!
-//! assert_eq!(foo.a(), 42);
-//! assert_eq!(foo.b().unwrap(), "Hello, world!");
 //! ```
-
+//!
+//! ## Approach
+//! ### The type alias
+//! The wrapper struct is a newtype for a Box<[u8]> that accepts a FlatBuffer as the generic type.</br>
+//! With the `flatbuffers_owned!` convenience macro we get a type alias that just masks this wrapper struct.
+//!
+//! ```rust
+//! pub type OwnedMessage = OwnedFlatBuffer<Message<'static>>;
+//! ```
+//!
+//! So instead of `OwnedMessage`, we can just as well use `OwnedFlatBuffer<Message<'static>>`.
+//!
+//! ```rust
+//! let owned_message = OwnedFlatBuffer::<Message<'static>>::new(message_bytes).unwrap();
+//! ```
+//!
+//! As you can see, we always carry around the `'static` lifetime for the FlatBuffer.</br>
+//! This is not quite appealing, since the owned FlatBuffer doesn't reference anything in the `'static` lifetime.</br>
+//! The lifetime is just there, because it is required by the FlatBuffer struct.</br>
+//! So to improve the code readability, we have the type alias.
+//!
+//! ### Deref to &[u8]
+//! The OwnedFlatBuffer struct de-references itself to its underlying bytes slice.</br>
+//! A Deref to the actual FlatBuffer struct is sadly not possible, since the associated type of the Deref trait can not carry a lifetime.
+//!
+//! ## Open to Feedback
+//! If you have any ideas for improvements or would like to contribute to this project, please feel free to open an issue or pull request on GitHub.</br>
+//! I will also be happy for any general tips or suggestions given that this is my first (published) library ever. :)
 
 use std::ops::Deref;
 use flatbuffers::{Follow, ForwardsUOffset, InvalidFlatbuffer, Verifiable, Verifier, VerifierOptions};
 
+#[doc(hidden)]
 pub use paste::paste;
 
 /// This trait allows a `.follow()` method that returns a FlatBuffer with the lifetime of the provided byte slice.
@@ -77,10 +123,9 @@ pub trait OwnedFlatBufferTrait: Deref<Target = [u8]> + Sized {
     fn new(data: Box<[u8]>) -> Result<Self, InvalidFlatbuffer>;
 }
 
-/// This struct represents a owned FlatBuffer.
-/// It is a wrapper around a owned `Box<[u8]>` that contains the raw bytes of a FlatBuffer.
-/// The actual FlatBuffer must be passed as the generic type parameter `T`.
-/// The lifetime parameter of the FlatBuffer is nowhere used and can be safely set to `'static`.
+/// This is the FlatBuffer wrapper struct.
+/// It is a newtype for a Box<[u8]> that accepts a FlatBuffer as the generic type.
+/// The lifetime parameter of the FlatBuffer type is nowhere used and can be safely set to `'static`.
 ///
 /// To access a actual FlatBuffer struct, use the `.as_actual()` method.
 /// The returned FlatBuffer has the lifetime of the `OwnedFlatBuffer` struct.
