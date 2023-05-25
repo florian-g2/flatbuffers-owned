@@ -15,6 +15,8 @@ Use the `flatbuffers_owned!` convenience macro on your FlatBuffers to implement 
 
 Generate the `OwnedMessage` type alias for the `Message` FlatBuffer:
 ```rust
+use flatbuffers_owned::*;
+
 flatbuffers_owned!(Message);
 ```
 
