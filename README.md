@@ -10,11 +10,23 @@
 This small Rust crate provides a wrapper struct for generated Rust FlatBuffers that allows them to be used as owned types.</br></br>
 A owned FlatBuffer does not reference its source data and can therefore be easily moved into another thread.
 
+[Documentation](https://docs.rs/flatbuffers-owned)
+
+## Usage
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+flatbuffers-owned = "0.1"
+```
+
 ## Quickstart
 Use the `flatbuffers_owned!` convenience macro on your FlatBuffers to implement the required trait and introduce a type alias for each owned FlatBuffer.
 
 Generate the `OwnedMessage` type alias for the `Message` FlatBuffer:
 ```rust
+use flatbuffers_owned::*;
+
 flatbuffers_owned!(Message);
 ```
 
