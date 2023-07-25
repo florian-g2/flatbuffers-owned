@@ -12,8 +12,8 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-flatbuffers = "23.1.21"
-paste = "1.0.6"
+flatbuffers = "23.5.26"
+paste = "1.0.14"
 
 [lib]
 doctest = false

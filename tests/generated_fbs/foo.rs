@@ -1,11 +1,11 @@
 // This file is manually copied here, so we do not need flatc to run our tests.
 // The generated Rust code is based on the following flatbuffer schema:
-// struct Foo {
+// table Foo {
 //     a: uint32;
 //     b: string;
 // }
 //
-// Used flatc version: 23.3.3
+// Used flatc version: 23.5.26
 
 use core::mem;
 use core::cmp::Ordering;
