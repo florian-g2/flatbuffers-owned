@@ -5,7 +5,7 @@
 //     b: string;
 // }
 //
-// Used flatc version: 23.5.26
+// Used flatc version: 24.12.23
 
 use core::mem;
 use core::cmp::Ordering;
@@ -37,8 +37,8 @@ impl<'a> Foo<'a> {
         Foo { _tab: table }
     }
     #[allow(unused_mut)]
-    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr, A: flatbuffers::Allocator + 'bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr, A>,
         args: &'args FooArgs<'args>
     ) -> flatbuffers::WIPOffset<Foo<'bldr>> {
         let mut builder = FooBuilder::new(_fbb);
@@ -91,11 +91,11 @@ impl<'a> Default for FooArgs<'a> {
     }
 }
 
-pub struct FooBuilder<'a: 'b, 'b> {
-    fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+pub struct FooBuilder<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> {
+    fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a, A>,
     start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> FooBuilder<'a, 'b> {
+impl<'a: 'b, 'b, A: flatbuffers::Allocator + 'a> FooBuilder<'a, 'b, A> {
     #[inline]
     pub fn add_a(&mut self, a: u32) {
         self.fbb_.push_slot::<u32>(Foo::VT_A, a, 0);
@@ -105,7 +105,7 @@ impl<'a: 'b, 'b> FooBuilder<'a, 'b> {
         self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Foo::VT_B, b);
     }
     #[inline]
-    pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> FooBuilder<'a, 'b> {
+    pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a, A>) -> FooBuilder<'a, 'b, A> {
         let start = _fbb.start_table();
         FooBuilder {
             fbb_: _fbb,
