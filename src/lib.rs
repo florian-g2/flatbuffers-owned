@@ -1,11 +1,24 @@
-//! This small Rust crate provides a wrapper struct for generated Rust FlatBuffers that allows them to be used as owned types.</br>
-//! A owned FlatBuffer does not reference its source data and can therefore be easily moved into another thread.
+//! A Rust crate that enables a more flexible usage of FlatBuffers.
+//!
+//! Using the `flatbuffers_owned!` macro, you can generate wrapper structs for your flatc generated Rust FlatBuffers. \
+//! The generated wrapper structs utilize more flexible lifetimes to access the actual underlying FlatBuffer structure. \
+//! As the lifetimes are more relaxed, the raw FlatBuffer bytes can be owned and moved along, or be referenced with any lifetime available.
+//!
+//! ## Usage
+//! Add this to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! flatbuffers-owned = "0.2"
+//! ```
 //!
 //! ## Quickstart
-//! Use the `flatbuffers_owned!` convenience macro on your FlatBuffers to implement the required trait and introduce a type alias for each owned FlatBuffer.
+//! Use the `flatbuffers_owned!` macro on your FlatBuffers to generate the wrapper structs.
 //!
-//! Generate the `OwnedMessage` type alias for the `Message` FlatBuffer:
+//! This generates a `RelaxedMessage` wrapper-struct and a `OwnedMessage` type alias for the `Message` FlatBuffer:
 //! ```rust
+//! use flatbuffers_owned::*;
+//!
 //! flatbuffers_owned!(Message);
 //! ```
 //!
@@ -25,7 +38,7 @@
 //! ```
 //!
 //! ## Error-Handling
-//! The new() constructor always verifies the raw FlatBuffer bytes using the FlatBuffer's built-in run_verifier() method.</br>
+//! The `new()` constructor always verifies the raw FlatBuffer bytes using the FlatBuffer's built-in `run_verifier()` method.</br>
 //! Since there can always be a faulty byte-slice passed, you need to check the returned Result of the constructor:
 //! ```rust
 //! for id in message_ids {
@@ -40,37 +53,29 @@
 //!         Err(e) => {
 //!             println!("Failed to parse Message: {}", e);
 //!             // ... handling logic
-//!         },
+//!         }
 //!     }
 //! }
 //! ```
 //!
 //! ## Approach
 //! ### The wrapper struct
-//! The wrapper struct is a newtype for a Box<[u8]> that accepts a FlatBuffer as the generic type.</br>
-//! With the `flatbuffers_owned!` convenience macro we get a type alias that just masks this wrapper struct.
+//! The `Relaxed{FLATBUFFER_NAME}` wrapper struct is a Newtype which can wrap any struct that can convert to a byte slice reference. (```where TBuffer: AsRef<[u8]>```) \
+//! This struct can be used with buffers that fully own its memory, or only hold a shared-reference.
 //!
+//! The `Owned{FLATBUFFER_NAME}` type alias generated along the wrapper struct just predefines the `TBuffer` generic. \
+//! For our `Message` example FlatBuffer, the generated type alias code would be the following:
 //! ```rust
-//! pub type OwnedMessage = OwnedFlatBuffer<Message<'static>>;
+//! pub type OwnedMessage = RelaxedMessage<Box<[u8]>>;
 //! ```
-//!
-//! So instead of `OwnedMessage`, we can just as well use `OwnedFlatBuffer<Message<'static>>`.
-//!
-//! ```rust
-//! let owned_message = OwnedFlatBuffer::<Message<'static>>::new(message_bytes).unwrap();
-//! ```
-//!
-//! As you may have noticed, the `'static` lifetime is then always present when working with the OwnedFlatBuffer.</br>
-//! However, this can be misleading, because the OwnedFlatBuffer does not actually reference anything in the `'static` lifetime.</br>
-//! The lifetime is only required by the FlatBuffer struct.</br>
-//! So to make the code more readable, we have the type alias.</br>
 //!
 //! ### Deref to &[u8]
-//! The OwnedFlatBuffer struct de-references itself to its underlying bytes slice.</br>
-//! A Deref to the actual FlatBuffer struct is sadly not possible, since the associated type of the Deref trait can not carry a lifetime.
+//! The `RelaxedFlatBufferTrait` enforces a de-reference to the underlying [u8] byte slice. \
+//! A de-reference to the actual FlatBuffer struct is sadly not possible, since the associated type of the `Deref` trait can not carry a lifetime.
 //!
 //! ## Open to Feedback
-//! If you have any ideas for improvements or would like to contribute to this project, please feel free to open an issue or pull request on GitHub.</br>
+//! If you have any ideas for improvements or would like to contribute to this project, please feel free to open an issue or pull request.
+//!
 //! I will also be happy for any general tips or suggestions given that this is my first (published) library ever. :)
 
 use std::ops::Deref;
@@ -83,134 +88,111 @@ pub use paste::paste;
 ///
 /// # Example trait implementation
 /// ```
-/// use flatbuffers_owned::RelaxedFollow;
+/// use flatbuffers_owned::RelaxedFollowTrait;
 ///
-/// impl RelaxedFollow for MyStruct<'_> {
+/// impl RelaxedFollowTrait for MyFlatBuffer<'_> {
 ///    type Inner<'a> = MyFlatBuffer<'a>;
 /// }
-pub trait RelaxedFollow {
+pub trait RelaxedFollowTrait {
     type Inner<'a>: Follow<'a>;
 
-    fn follow(buf: &[u8], loc: usize) -> <<Self as RelaxedFollow>::Inner<'_> as Follow<'_>>::Inner {
-        unsafe { <ForwardsUOffset<Self::Inner<'_>>>::follow(buf, loc) }
+    /// # Safety
+    ///
+    /// This function lacks verification. This method could yield a FlatBuffer with undefined behavior on field reads when corrupted FlatBuffer bytes are passed.
+    #[inline(always)]
+    unsafe fn follow(buf: &[u8], loc: usize) -> <<Self as RelaxedFollowTrait>::Inner<'_> as Follow<'_>>::Inner {
+        <ForwardsUOffset<Self::Inner<'_>>>::follow(buf, loc)
     }
 }
 
-/// The trait for owned FlatBuffers.
+/// This trait serves as the foundation for this crate. \
+/// It allows access to the underlying FlatBuffer using the [as_actual()](RelaxedFlatBufferTrait::as_actual) method. \
+/// The lifetimes used here are more relaxed than those in the flatc generated code. \
+/// For example, it could be implemented for a fully owned `Box<\[u8\]>` new-type or even a reference to memory that has been temporarily pinned following a DB query.
 ///
-/// This trait requires the [`RelaxedFollow`] trait bound on the FlatBuffer type.
-/// It can be either implemented manually or by using the `flatbuffer_owned!` macro.
+/// This trait requires the [RelaxedFollowTrait] trait bound on the FlatBuffer type. \
+/// It can be implemented either manually or using the [flatbuffers_owned!](flatbuffers_owned) macro.
+///
+/// # Safety
+/// The default implementation of the [as_actual()](RelaxedFlatBufferTrait::as_actual) method uses the unsafe [.follow()](RelaxedFollowTrait::follow) method do return the actual FlatBuffer. \
+/// [as_actual()](RelaxedFlatBufferTrait::as_actual) does not verify the FlatBuffer. \
+/// If you choose to implement this trait manually, you must ensure that the underlying byte slice is verified and the buffer remains immutable.
 ///
 /// # Example trait usage
 /// ```
-/// # use flatbuffers_owned::OwnedFlatBuffer;
+/// # use flatbuffers_owned::RelaxedFlatBufferTrait;
 ///
-/// fn process_fbs(flatbuffers: &[impl OwnedFlatBufferTrait]) {
+/// fn store_fbs<TBuffer>(flatbuffers: &[impl RelaxedFlatBufferTrait<TBuffer>]) {
 ///    for item in flatbuffers {
-///         let bytes: &[u8] = &*item;
-///         // ... do something with the raw bytes
+///         let bytes: &[u8] = item.deref();
+///         // ... store the raw bytes somewhere.
 ///    }
 /// }
 /// ```
-pub trait OwnedFlatBufferTrait: Deref<Target = [u8]> + Sized {
-    type FlatBuffer: RelaxedFollow + Verifiable;
-
-    /// Initializes a actual FlatBuffer struct that references the owned data.
-    fn as_actual(&self) -> <<<Self as OwnedFlatBufferTrait>::FlatBuffer as RelaxedFollow>::Inner<'_> as Follow<'_>>::Inner;
-
-    /// Create a new owned FlatBuffer from the provided data.
-    /// This method calls the verifier of the FlatBuffer and returns an error result if the data is invalid.
-    fn new(data: Box<[u8]>) -> Result<Self, InvalidFlatbuffer>;
-}
-
-/// This is the FlatBuffer wrapper struct.
-/// It is a newtype for a Box<[u8]> that accepts a FlatBuffer as the generic type.
-/// The lifetime parameter of the FlatBuffer type is nowhere used and can be safely set to `'static`.
-///
-/// To access a actual FlatBuffer struct, use the `.as_actual()` method.
-/// The returned FlatBuffer has the lifetime of the `OwnedFlatBuffer` struct.
-///
-/// # Example usage
-/// ```
-/// # use flatbuffers_owned::OwnedFlatBuffer;
-///
-/// let owned_message;
-/// {
-///     let message_bytes: &[u8] = receive_message_bytes();
-///     let message_bytes: Box<[u8]> = Box::from(message_bytes);
-///
-///     owned_message = OwnedFlatBuffer::<Message<'static>>::new(message_bytes).expect("Failed to parse message");
-/// }
-///
-/// let message = owned_message.as_actual();
-///
-/// assert_eq!(message.get_text().unwrap(), "Hello, world!");
-/// ```
-pub struct OwnedFlatBuffer<T>(Box<[u8]>, std::marker::PhantomData<T>)
-    where T: RelaxedFollow + Verifiable;
-
-/// I would really like to implement a deref to the actual FlatBuffer struct here, but the associated type does not allow lifetime parameters.
-impl<T> Deref for OwnedFlatBuffer<T>
-    where T: RelaxedFollow + Verifiable
+pub unsafe trait RelaxedFlatBufferTrait<TBuffer>
+    where Self: Deref<Target = [u8]> + Sized
 {
-    type Target = [u8];
+    type FlatBuffer: RelaxedFollowTrait + Verifiable;
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl <T> OwnedFlatBufferTrait for OwnedFlatBuffer<T>
-    where T: RelaxedFollow + Verifiable
-{
-    type FlatBuffer = T;
-
-    fn as_actual(&self) -> <<<Self as OwnedFlatBufferTrait>::FlatBuffer as RelaxedFollow>::Inner<'_> as Follow<'_>>::Inner {
-        Self::FlatBuffer::follow(self, 0)
+    /// Initializes a actual FlatBuffer struct from the byte slice returned by the Self::deref() method.
+    #[inline(always)]
+    fn as_actual(&self) -> <<<Self as RelaxedFlatBufferTrait<TBuffer>>::FlatBuffer as RelaxedFollowTrait>::Inner<'_> as Follow<'_>>::Inner {
+        unsafe { Self::FlatBuffer::follow(self, 0) }
     }
 
-    fn new(data: Box<[u8]>) -> Result<Self, InvalidFlatbuffer> {
+    /// Verifies the FlatBuffer data.
+    fn verify(data: &[u8]) -> Result<(), InvalidFlatbuffer> {
         let opts = VerifierOptions::default();
-        let mut v = Verifier::new(&opts, &data);
+        let mut v = Verifier::new(&opts, data);
 
-        <ForwardsUOffset<Self::FlatBuffer>>::run_verifier(&mut v, 0)?;
-
-        Ok(Self(data, std::marker::PhantomData))
+        <ForwardsUOffset<Self::FlatBuffer>>::run_verifier(&mut v, 0)
     }
+
+    fn new(data: TBuffer) -> Result<Self, InvalidFlatbuffer>;
 }
 
-/// This macro implements the [`RelaxedFollow`] trait for your FlatBuffer and creates a type alias for the corresponding [`OwnedFlatBuffer`] type.
-/// This is the go-to macro for creating an owned FlatBuffer type.
+/// Use this macro on your FlatBuffers to generate the required code to start using this crate.
 ///
+/// After invoking the macro, you have two generated types for each of your passed FlatBuffers: \
+/// 1. A generic new-type struct named `Relaxed{FLATBUFFER_NAME}`, which implements [RelaxedFlatBufferTrait] and takes the generic `TBuffer: AsRef<[u8]>`. \
+/// 2. A type alias named `Owned{FLATBUFFER_NAME}, which aliases the `Relaxed{FLATBUFFER_NAME}` struct and sets `TBuffer` to `Box<[u8]>`.
 ///
-/// # Example usage
+/// # Usage
 /// ```
-/// # use flatbuffers_owned::flatbuffers_owned;
+/// use flatbuffers_owned::flatbuffers_owned;
 ///
 /// flatbuffers_owned!(MyFirstFlatBuffer, MySecondFlatBuffer);
 /// ```
-///
-/// The above macro call expands to:
-/// ```
-/// # use flatbuffers_owned::{RelaxedFollow, OwnedFlatBuffer};
-///
-/// impl RelaxedFollow for MyFirstFlatBuffer<'_> {
-///   type Inner<'a> = MyFirstFlatBuffer<'a>;
-/// }
-///
-/// pub type OwnedMyFirstFlatBuffer = OwnedFlatBuffer<MyFirstFlatBuffer<'static>>;
-///
-/// // ... and the same for MySecondFlatBuffer
-///
 #[macro_export]
 macro_rules! flatbuffers_owned {
     ($struct_name:ident) => {
         $crate::paste! {
-            impl $crate::RelaxedFollow for $struct_name<'_> {
+            impl $crate::RelaxedFollowTrait for $struct_name<'_> {
                 type Inner<'a> = $struct_name<'a>;
             }
 
-            pub type [<Owned $struct_name>] = $crate::OwnedFlatBuffer<$struct_name<'static>>;
+            #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+            pub struct [<Relaxed $struct_name>]<TBuffer: AsRef<[u8]>>(TBuffer);
+
+            unsafe impl <TBuffer: AsRef<[u8]>> RelaxedFlatBufferTrait<TBuffer> for [<Relaxed $struct_name>]<TBuffer> {
+                type FlatBuffer = $struct_name<'static>;
+
+                fn new(data: TBuffer) -> Result<Self, flatbuffers::InvalidFlatbuffer> {
+                    Self::verify(data.as_ref())?;
+
+                    Ok(Self(data))
+                }
+            }
+            
+            impl <TBuffer: AsRef<[u8]>> std::ops::Deref for [<Relaxed $struct_name>]<TBuffer> {
+                type Target = [u8];
+
+                fn deref(&self) -> &Self::Target {
+                    self.0.as_ref()
+                }
+            }
+
+            pub type [<Owned $struct_name>] = [<Relaxed $struct_name>]<Box<[u8]>>;
         }
     };
 

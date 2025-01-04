@@ -1,13 +1,13 @@
 [package]
 name = "flatbuffers-owned"
 authors = ["Florian Gäbler"]
-description = "This small Rust crate provides a wrapper struct for generated Rust FlatBuffers that allows them to be used as owned types."
+description = "A Rust crate that enables a more flexible usage of FlatBuffers."
 license = "MIT"
 documentation = "https://docs.rs/flatbuffers-owned"
 repository = "https://github.com/florian-g2/flatbuffers-owned"
 keywords = ["flatbuffers", "serialization", "owned"]
 categories = ["data-structures", "memory-management"]
-version = "0.1.1"
+version = "0.2.0"
 readme = "README.md"
 edition = "2018"
 
