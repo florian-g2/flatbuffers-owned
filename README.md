@@ -26,50 +26,48 @@ flatbuffers-owned = "0.2"
 ## Quickstart
 Use the `flatbuffers_owned!` macro on your FlatBuffers to generate the wrapper structs.
 
-This generates a `RelaxedMessage` wrapper-struct and a `OwnedMessage` type alias for the `Message` FlatBuffer:
+In this example it generates a `RelaxedMessage` wrapper-struct and a `OwnedMessage` type alias for the `Message` FlatBuffer:
 ```rust
 use flatbuffers_owned::*;
 
 flatbuffers_owned!(Message);
 ```
 
-Receive a byte slice, create a boxed slice, and initialize the owned flatbuffer:
-```rust 
-fn main() {
-    let message_bytes: &[u8] = receive_message_bytes();
-    let message_bytes: Box<[u8]> = Box::from(message_bytes);
+Owned flatbuffers can be created by calling the `new()` constructor on the generated `Owned{FLATBUFFER_NAME}` type alias.
+```rust
+// receive byte slice reference from somewhere
+let message_bytes: &[u8] = receive_message_bytes();
 
-    let owned_message = OwnedMessage::new(message_bytes).unwrap();
-}
+// copy bytes into a Box to own the bytes
+let message_bytes: Box<[u8]> = Box::from(message_bytes);
+
+// create owned message from owned message_bytes box
+let owned_message = OwnedMessage::new(message_bytes).unwrap();
 ```
 
-Access the actual FlatBuffer:
+Call `.as_actual()` on the owned message to get a reference to the actual FlatBuffer struct.
 ```rust
-fn main() {
-    let message: Message = owned_message.as_actual();
+let message: Message = owned_message.as_actual();
 
-    assert_eq!(message.get_text().unwrap(), "Hello, world!");
-}
+assert_eq!(message.get_text().unwrap(), "Hello, world!");
 ```
 
 ## Error-Handling
 The `new()` constructor always verifies the raw FlatBuffer bytes using the FlatBuffer's built-in `run_verifier()` method.</br>
 Since there can always be a faulty byte-slice passed, you need to check the returned Result of the constructor:
 ```rust
-fn main() {
-    for id in message_ids {
-        let message_bytes = Box::from(receive_message_bytes());
+for id in message_ids {
+    let message_bytes = Box::from(receive_message_bytes());
 
-        let owned_message = OwnedMessage::new(message_bytes);
+    let owned_message = OwnedMessage::new(message_bytes);
 
-        match owned_message {
-            Ok(message) => {
-                // ... process message
-            },
-            Err(e) => {
-                println!("Failed to parse Message: {}", e);
-                // ... handling logic
-            }
+    match owned_message {
+        Ok(message) => {
+            // ... process message
+        },
+        Err(e) => {
+            println!("Failed to parse Message: {}", e);
+            // ... handling logic
         }
     }
 }
