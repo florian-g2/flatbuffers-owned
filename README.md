@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-flatbuffers-owned = "0.2"
+flatbuffers-owned = "0.3"
 ```
 
 ## Quickstart
