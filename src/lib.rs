@@ -172,19 +172,20 @@ macro_rules! flatbuffers_owned {
             }
 
             #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-            pub struct [<Relaxed $struct_name>]<TBuffer: AsRef<[u8]>>(TBuffer);
+            pub struct [<Relaxed $struct_name>]<TBuffer: ::std::convert::AsRef<[u8]>>(TBuffer);
 
-            unsafe impl <TBuffer: AsRef<[u8]>> RelaxedFlatBufferTrait<TBuffer> for [<Relaxed $struct_name>]<TBuffer> {
+            unsafe impl <TBuffer: ::std::convert::AsRef<[u8]>>
+                $crate::RelaxedFlatBufferTrait<TBuffer> for [<Relaxed $struct_name>]<TBuffer>
+            {
                 type FlatBuffer = $struct_name<'static>;
 
-                fn new(data: TBuffer) -> Result<Self, flatbuffers::InvalidFlatbuffer> {
+                fn new(data: TBuffer) -> ::std::result::Result<Self, ::flatbuffers::InvalidFlatbuffer> {
                     Self::verify(data.as_ref())?;
-
                     Ok(Self(data))
                 }
             }
-            
-            impl <TBuffer: AsRef<[u8]>> std::ops::Deref for [<Relaxed $struct_name>]<TBuffer> {
+
+            impl <TBuffer: ::std::convert::AsRef<[u8]>> ::std::ops::Deref for [<Relaxed $struct_name>]<TBuffer> {
                 type Target = [u8];
 
                 fn deref(&self) -> &Self::Target {
@@ -192,7 +193,7 @@ macro_rules! flatbuffers_owned {
                 }
             }
 
-            pub type [<Owned $struct_name>] = [<Relaxed $struct_name>]<Box<[u8]>>;
+            pub type [<Owned $struct_name>] = [<Relaxed $struct_name>]<::std::boxed::Box<[u8]>>;
         }
     };
 
